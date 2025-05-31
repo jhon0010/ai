@@ -1,0 +1,5 @@
+.venv/*
+source/*
+source/bin/pip
+.env copy
+src/__pycache__/runner.cpython-312.pyc
