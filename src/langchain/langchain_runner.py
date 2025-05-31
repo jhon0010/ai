@@ -7,6 +7,15 @@ from langchain.prompts import (
 )
 from langchain_openai import ChatOpenAI
 from langchain_core.runnables import RunnableLambda, RunnableParallel
+from pydantic import BaseModel, Field
+from dataclasses import asdict
+
+class ArticleResponse(BaseModel):
+    content: str = Field(description="The original article text.")
+    summary: str = Field(description="A summary of the article.")
+    body: str = Field(description="The main body of the article.")
+    call_out: str = Field(description="A call-out section for the article.")
+
 
 article = """
 Cats are small, carnivorous mammals that are often kept as pets. They belong to the family Felidae and are known for their agility, sharp retractable claws, and keen senses. Cats have been domesticated for thousands of years and are one of the most popular pets worldwide.
@@ -15,6 +24,23 @@ Cats are small, carnivorous mammals that are often kept as pets. They belong to 
 """
 This script demonstrates how to create a LangChain agent that can process an article and respond to questions about it.
 """
+
+def print_model_structure(response: ArticleResponse) -> None:   
+    print("\nModel Structure:")
+    print("Type:", type(response))
+    print("\nFields:")
+    for field_name, field_info in response.model_fields.items():
+        print(f"\n{field_name}:")
+        print(f"  Type: {field_info.annotation}")
+        print(f"  Required: {field_info.is_required()}")
+        print(f"  Default: {field_info.default}")
+        try:
+            value = getattr(response, field_name)
+            print(f"  Value: {value}")
+        except Exception as e:
+            print(f"  Value: <Error: {str(e)}>")
+
+
 def main() -> None:
     load_dotenv()
     print("Starting LangChain agent...")
@@ -27,8 +53,7 @@ def main() -> None:
                 {article}
             ---------
         """
-    )
-    system_pompt = system_pompt.format(article=article)
+    ).format(article=article)
 
 
     human_prompt = HumanMessagePromptTemplate.from_template(
@@ -41,17 +66,14 @@ def main() -> None:
             ---------
         """,
         input_variables=["article"]
-    )
-    human_prompt = human_prompt.format(article=article)
+    ).format(article=article)
 
     main_prompt = ChatPromptTemplate.from_messages(
         [system_pompt, human_prompt]
     )
-    print("System prompt and human prompt created successfully." + main_prompt.format(article=article))
-    
     openai_model = "gpt-4o-mini"
-    llm = ChatOpenAI(temperature=0.0, model=openai_model)
     creative_llm = ChatOpenAI(temperature=0.9, model=openai_model)
+    creative_llm = creative_llm.with_structured_output(ArticleResponse)
     
     inputs = RunnableParallel({
         "input": RunnableLambda(lambda _: article)
@@ -62,7 +84,7 @@ def main() -> None:
         | creative_llm
     )
     response = chain_one.invoke({"article": article})
-    print("Response from the agent: " + response.get("text", ""))
+    print_model_structure(response)
 
 
 """
