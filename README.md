@@ -28,6 +28,8 @@ uv venv --python 3.12.7
 
 # Install dependencies
 uv sync
+
+uv pip install -r requirements.txt
 ```
 
 ## Usage

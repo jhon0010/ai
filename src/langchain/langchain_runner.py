@@ -1,29 +1,47 @@
+import requests
+import uuid
+
 from dotenv import load_dotenv 
 
 from langchain.prompts import (
     SystemMessagePromptTemplate,
     HumanMessagePromptTemplate,
-    ChatPromptTemplate,
+    ChatPromptTemplate
 )
+from langchain_community.utilities.dalle_image_generator import DallEAPIWrapper
 from langchain_openai import ChatOpenAI
 from langchain_core.runnables import RunnableLambda, RunnableParallel
 from pydantic import BaseModel, Field
-from dataclasses import asdict
+from PIL import Image
+from io import BytesIO
+
+article = """
+Cats are small, carnivorous mammals that are often kept as pets. They belong to the family Felidae and are known for their agility, sharp retractable claws, and keen senses. Cats have been domesticated for thousands of years and are one of the most popular pets worldwide.
+"""
 
 class ArticleResponse(BaseModel):
     content: str = Field(description="The original article text.")
     summary: str = Field(description="A summary of the article.")
     body: str = Field(description="The main body of the article.")
     call_out: str = Field(description="A call-out section for the article.")
+    
+def generate_and_diplay_image(image_prompt) -> None:
+    try:
+        dalle = DallEAPIWrapper(
+            model="dall-e-3",
+            size="1024x1024",
+            quality="standard",   # or "hd"
+        )
+        image_url = dalle.run(image_prompt)
+        response = requests.get(image_url)
+        image = Image.open(BytesIO(response.content))
+        output_path = "generated_image" + uuid.uuid4().hex + ".png"
+        image.save(output_path)
+        print(f"Image has been saved to: {output_path}")
+    except Exception as e:
+            print(f"Error generating image: {str(e)}")
 
-
-article = """
-Cats are small, carnivorous mammals that are often kept as pets. They belong to the family Felidae and are known for their agility, sharp retractable claws, and keen senses. Cats have been domesticated for thousands of years and are one of the most popular pets worldwide.
-"""
-
-"""
-This script demonstrates how to create a LangChain agent that can process an article and respond to questions about it.
-"""
+image_gen_runnable = RunnableLambda(generate_and_diplay_image)
 
 def print_model_structure(response: ArticleResponse) -> None:   
     print("\nModel Structure:")
@@ -54,8 +72,7 @@ def main() -> None:
             ---------
         """
     ).format(article=article)
-
-
+    
     human_prompt = HumanMessagePromptTemplate.from_template(
         """
         Your task is to help me to create a complete article with the following pieces of information: 
@@ -67,6 +84,7 @@ def main() -> None:
         """,
         input_variables=["article"]
     ).format(article=article)
+    
 
     main_prompt = ChatPromptTemplate.from_messages(
         [system_pompt, human_prompt]
@@ -78,6 +96,7 @@ def main() -> None:
     inputs = RunnableParallel({
         "input": RunnableLambda(lambda _: article)
     })
+    
     chain_one = (
         inputs
         | main_prompt
@@ -86,9 +105,13 @@ def main() -> None:
     response = chain_one.invoke({"article": article})
     print_model_structure(response)
 
+    chain_two = (
+        chain_one
+        | RunnableLambda(lambda x: x.content)
+        | image_gen_runnable
+    )
+    chain_two.invoke({"article": article})
 
-"""
-    RUN ME!
-"""
+
 if __name__ == "__main__":
     main()
