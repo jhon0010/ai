@@ -15,6 +15,8 @@ from pydantic import BaseModel, Field
 from PIL import Image
 from io import BytesIO
 
+from langsmith import traceable # Go to https://smith.langchain.com/ to get your API key
+
 article = """
 Cats are small, carnivorous mammals that are often kept as pets. They belong to the family Felidae and are known for their agility, sharp retractable claws, and keen senses. Cats have been domesticated for thousands of years and are one of the most popular pets worldwide.
 """
@@ -25,7 +27,9 @@ class ArticleResponse(BaseModel):
     body: str = Field(description="The main body of the article.")
     call_out: str = Field(description="A call-out section for the article.")
     
-def generate_and_diplay_image(image_prompt) -> None:
+ 
+@traceable(name="Image Generation")
+def generate_and_save_image(image_prompt):
     try:
         dalle = DallEAPIWrapper(
             model="dall-e-3",
@@ -38,11 +42,13 @@ def generate_and_diplay_image(image_prompt) -> None:
         output_path = "generated_image" + uuid.uuid4().hex + ".png"
         image.save(output_path)
         print(f"Image has been saved to: {output_path}")
+        return image_url
     except Exception as e:
             print(f"Error generating image: {str(e)}")
 
-image_gen_runnable = RunnableLambda(generate_and_diplay_image)
+image_gen_runnable = RunnableLambda(generate_and_save_image)
 
+@traceable(name="Print Model Structure")
 def print_model_structure(response: ArticleResponse) -> None:   
     print("\nModel Structure:")
     print("Type:", type(response))
