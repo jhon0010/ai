@@ -17,6 +17,7 @@ from io import BytesIO
 
 from langsmith import traceable # Go to https://smith.langchain.com/ to get your API key
 
+load_dotenv()
 article = """
 Cats are small, carnivorous mammals that are often kept as pets. They belong to the family Felidae and are known for their agility, sharp retractable claws, and keen senses. Cats have been domesticated for thousands of years and are one of the most popular pets worldwide.
 """
@@ -66,7 +67,6 @@ def print_model_structure(response: ArticleResponse) -> None:
 
 
 def main() -> None:
-    load_dotenv()
     print("Starting LangChain agent...")
     system_pompt = SystemMessagePromptTemplate.from_template(
         """
