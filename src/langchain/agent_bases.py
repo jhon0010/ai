@@ -2,13 +2,12 @@ from langchain_core.tools import tool
 import json
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
-from langchain.memory import ConversationBufferMemory, prompt
+from langchain.memory import ConversationBufferMemory
 from langchain.agents import AgentExecutor
 from dotenv import load_dotenv 
 from langchain_community.tools import DuckDuckGoSearchRun
 from langchain.agents.react.agent import create_react_agent 
 from langchain_core.prompts import PromptTemplate
-from langchain_core.messages import HumanMessage
 
 
 load_dotenv()
